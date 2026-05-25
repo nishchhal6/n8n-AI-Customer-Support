@@ -14,7 +14,7 @@ This project uses an **Agentic Workflow** (Deterministic Routing) rather than an
 
 ## 🛠️ Tech Stack
 * **n8n** (Workflow Automation, Webhooks, Conditional Logic)
-* **Google Gemini 1.5 Flash API** (Sentiment Analysis & Prompt Engineering)
+* **Google Gemini 2.5 Flash API** (Sentiment Analysis & Prompt Engineering)
 * **REST APIs & JSON Data Handling**
 
 ## 📸 Workflow Preview
