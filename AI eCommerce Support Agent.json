@@ -1,0 +1,269 @@
+{
+  "name": "AI eCommerce Support Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "874fedaa-800b-46d3-8dba-d18ea9ee50d2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "92c522f1-6f2a-41f6-ae0e-23928516a06e",
+      "name": "Webhook",
+      "webhookId": "874fedaa-800b-46d3-8dba-d18ea9ee50d2"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an intelligent eCommerce support assistant. Analyze this customer message: \"{{ $json.body.message }}\".\n\nReturn ONLY a valid JSON object (no markdown, no code blocks) with these exact keys:\n{\n  \"sentiment\": \"(Strictly choose one: Positive, Neutral, Angry)\",\n  \"urgency\": \"(Strictly choose one: High, Low)\",\n  \"ai_draft\": \"(Write a polite, empathetic 2-line response addressing their specific issue)\"\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "7286cece-3f74-4743-aa13-32a00bf84789",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "mBDyYEWRWT5WXikA",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gemini ka text uthao (humne dono common raste daal diye hain jahan n8n text rakhta hai)\nlet text = $input.first().json.text || $input.first().json.content.parts[0].text;\n\n// Agar Gemini ne galti se ```json laga diya ho, toh usko saaf karo\ntext = text.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\n// Text ko real Data Object (JSON) me badlo\nlet parsedData = JSON.parse(text);\n\n// Output return karo\nreturn [{ json: parsedData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        0
+      ],
+      "id": "7955b085-b0ea-4488-a1ac-2e1d18ccb4e6",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sentiment }}",
+                    "rightValue": "Angry",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6e7af0b5-5d73-416e-a553-ed638dc99349"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2b57c658-73f7-4ec4-ba36-bfd0782660bb",
+                    "leftValue": "={{ $json.sentiment }}",
+                    "rightValue": "Neutral",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "97c05c20-2808-437a-b020-dbb97578054a",
+                    "leftValue": "={{ $json.sentiment }}",
+                    "rightValue": "Positive",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        -16
+      ],
+      "id": "096c2140-2795-4d24-ba52-d08ecd13e7e7",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "sendTo": "nishchhalverma6@gmail.com",
+        "subject": "=URGENT ESCALATION: Ticket {{ $('Webhook').item.json.body.ticket_id }}",
+        "message": "=<h2 style=\"color: red;\">🚨 URGENT VIP ESCALATION 🚨</h2> <p><b>Customer Name:</b> {{ $('Webhook').item.json.body.customer_name }}</p> <p><b>Customer Email:</b> {{ $('Webhook').item.json.body.customer_email }}</p> <p><b>Original Message:</b></p> <blockquote style=\"border-left: 4px solid red; padding-left: 10px;\">   \"<i>{{ $('Webhook').item.json.body.message }}</i>\" </blockquote> <hr> <h3>🤖 AI Assessment:</h3> <p><b>Sentiment:</b> {{ $json.sentiment }}</p> <p><b>Urgency:</b> {{ $json.urgency }}</p> <p><b>Suggested AI Reply (Do not send without review):</b><br> {{ $json.ai_draft }}</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        -80
+      ],
+      "id": "fd504b93-16ab-4405-aef3-a8149108809d",
+      "name": "Send a message",
+      "webhookId": "5a022b60-84d0-4e6e-a5de-f781bb946a76",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "J8oh88TbGIAWvmsn",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.customer_email }}",
+        "subject": "=Update on your Support Ticket: {{ $('Webhook').item.json.body.ticket_id }}",
+        "message": "={{ $('Code in JavaScript').item.json.ai_draft }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        80
+      ],
+      "id": "ba6ed0dc-5197-4e3e-a420-048d8c404210",
+      "name": "Send a message1",
+      "webhookId": "bfd56b67-f9e8-4c69-ab7d-d70c90f76585",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "J8oh88TbGIAWvmsn",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ee376c9a-6412-4d1a-9a5b-d1a5b9cb2060",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1ad05a97d7d2d9e42ecf50933d7122ebc8915b946eab5a1327eb470befe9e275"
+  },
+  "id": "wLtqbsGzAaB6hOVi",
+  "tags": []
+}
